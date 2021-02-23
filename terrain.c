@@ -9,9 +9,12 @@
 
 #define LERP(a, b, fac) ((double)((a) * (1-(fac)) + (b) * (fac)))
 
+
 // Ferramentas para o terminal =) 
-#define TERMGOTO(x, y) printf("\033[%d;%dH", (y), (x))
-#define TERMCLEAR() printf("\e[1;1H\e[2J")
+#define TERMGOTO(x, y)               printf("\033[%d;%dH", (y), (x))
+#define TERMCLEAR()                  printf("\e[1;1H\e[2J")
+#define TERMPAINTCELL(x, y, r, g, b) {TERMGOTO((x), (y)); printf("\033[48;2;%d;%d;%dm \033[0m", (r), (g), (b));}
+
 
 #define MIN(a, b) ((a)<(b) ? (a) : (b))
 #define MAX(a, b) ((a)<(b) ? (b) : (b))
@@ -70,7 +73,7 @@ int * array_get_interpolated(int * array, int length, int step){
 	int * temp;
 	int i, j, a, b;
 
-	temp = malloc(sizeof(int) * length * step - step);
+	temp = malloc(sizeof(int) * length * step);
 
 	for(i=0; i<length; i++){
 
@@ -87,7 +90,7 @@ int * array_get_interpolated(int * array, int length, int step){
 }
 
 
-// Isto é quase como se fosse um box blur
+// Isto é quase um fosse um box blur
 void array_blur(int * array, int length, int radius, int steps){
 
 	int * temp;
@@ -141,15 +144,24 @@ void array_show(int * array, int length){
 
 }
 
-void show_terrain(int * array, int length, int height){
+
+	
+
+
+
+void render_terrain(int * array, int length, int height){
 
 	int x, y, curr;
+	int r, g, b;
 	int val;
 
 	for(x=0; x<length; x++){
 		for(y=0; y<height; y++){
-			TERMGOTO(x, y);
-			printf("\033[48;2;25;50;100m \033[0m");
+
+			val = (255 - pow((double)y/height, 2)*255) * 0.5;
+
+			TERMPAINTCELL(x, y, (int)((double)val*0.7), (int)((double)val * 1.1), (int)((double)val * 1.5));
+
 		}
 
 	}
@@ -160,11 +172,9 @@ void show_terrain(int * array, int length, int height){
 		
 		for(y=0; y<curr; y++){
 
-			TERMGOTO(x, height-y);
+			val = pow(((double)y/height), 2) * 200 + 50;
 
-			val = (int)((double)y/height*255);
-
-			printf("\033[48;2;30;100;50m \033[0m");
+			TERMPAINTCELL(x, height-y, (int)((double)val*0.7), (int)((double)val * 2), (int)((double)val*0.8));
 
 		}
 	}
@@ -194,20 +204,29 @@ int main(void){
 	ioctl(STDOUT_FILENO, TIOCGWINSZ, &termdim);
 
 	int step       = 5;
-	int src_length = termdim.ws_col-1;
-	int dst_length = (src_length*step)-(step+1);
+	
+	// Tamanho do terminal dividido por 5
+	// já que depois será interpolado com um passo de 5,
+	// por exemplo:
+	//
+	// 1       2|          3|
+	// 1 2 3 4 5| 6 7 8 9 10|
+	//
+	// O tamanho aumentou 5 vezes
+	int src_length = termdim.ws_col/5;
+	int dst_length = src_length * step - step;
+
+	// 3/4 da altura do terminal
 	int height     = termdim.ws_row*0.75;
 
 
 	array = array_get_random(src_length, 5, height);
 	final = array_get_interpolated(array, src_length, step);
-
-
-	array_blur(final, dst_length, 5, 10);
 	
+	array_blur(final, dst_length, 5, 13);
 
 	TERMCLEAR();
-	show_terrain(final, dst_length, height);
+	render_terrain(final, dst_length, height);
 
 	free(array);
 	free(final);
