@@ -18,7 +18,7 @@ clang-11 -lm -g terrain.c -o terrain
 
 Este simples programa cria uma array 1D e mostra-a no terminal como se fosse um terreno.
 
-#### Como Compiler 
+#### Como Compilar
 
 ```
 clang-11 -lm -g terrain.c -o terrain
